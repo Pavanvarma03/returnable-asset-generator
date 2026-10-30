@@ -4,7 +4,7 @@ Coordinates return merchandise, reusable packaging, pallets and equipment across
 
 ## Run
 
-`java ReturnableAssetGenerator.java --seed 20261022 --assets 20000 --shipments 10000 --events 100000 --as-of 2026-10-30 --out out`
+`javac -d build src/main/java/assetgen/*.java && java -cp build assetgen.Main --seed 20261022 --assets 20000 --shipments 10000 --events 100000 --as-of 2026-10-30 --out out`
 
 Starter set: `--assets 2000 --shipments 1000 --events 10000`. Same generator, same rules, only the scale changes. Java 17+, no dependencies. `--sql false` skips SQL.
 

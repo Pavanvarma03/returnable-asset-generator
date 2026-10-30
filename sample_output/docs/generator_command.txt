@@ -1,1 +1,1 @@
-java ReturnableAssetGenerator.java --seed 20261022 --assets 2000 --shipments 1000 --events 10000 --as-of 2026-10-30 --out <dir>
+java -cp build assetgen.Main --seed 20261022 --assets 2000 --shipments 1000 --events 10000 --as-of 2026-10-30 --out <dir>

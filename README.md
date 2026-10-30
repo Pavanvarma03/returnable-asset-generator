@@ -4,9 +4,27 @@ Coordinates return merchandise, reusable packaging, pallets and equipment across
 
 ## Run
 
-`java ReturnableAssetGenerator.java --seed 20261022 --assets 20000 --shipments 10000 --events 100000 --as-of 2026-10-30 --out out`
+```
+./build.sh
+./run.sh --seed 20261022 --assets 20000 --shipments 10000 --events 100000 --as-of 2026-10-30 --out out
+```
 
-Starter set: `--assets 2000 --shipments 1000 --events 10000`. Same generator, same rules, only the scale changes. Java 17+, no dependencies. `--sql false` skips SQL.
+Starter set: `./run.sh --assets 2000 --shipments 1000 --events 10000 --out starter`. Same generator, same rules, only the scale changes. Java 17+, no dependencies. `--sql false` skips SQL.
+
+## Source layout (`src/main/java/assetgen`)
+
+| File | Role |
+|---|---|
+| `Main` | Entry point: parse options, calibrate volume, inject anomalies, validate, export |
+| `Cli` | Command-line options |
+| `Config` | Run parameters, business-rule constants, asset-type catalogue, lifecycle state machine |
+| `Schema` | Table definitions: fields, types, enums, keys, validation rules |
+| `Table`, `Col` | Table and column model; CSV, DDL and INSERT export |
+| `World` | Master data and the day-by-day simulation (dispatch, return, inspection, repair, deposits) |
+| `AnomalyInjector` | Injects the five labelled edge cases and writes the ground truth |
+| `Validator` | Integrity checks, derived values, reconciliation, anomaly detection |
+| `Exporter`, `Output` | Writes data, docs, manifest and checksums |
+| `IntList`, `LongList` | Primitive growable arrays |
 
 Complexity: O(A+S+E). Pools are swap-remove arrays, asset release uses day buckets (counting sort), derivation uses counting sort and hash maps. Volume calibration repeats the O(N) simulation a small constant number of times.
 
@@ -50,8 +68,7 @@ Fully synthetic. No external dataset, no personal data. See `docs/source_manifes
 
 ## Repository contents
 
-- `ReturnableAssetGenerator.java` is the generator (single file).
+- `src/main/java/assetgen/` is the generator source.
+- `build.sh`, `run.sh` build and run it.
 - `sample_output/` is the starter dataset (2,000 assets, 1,000 shipments, 10,000 events).
 - `full_run_docs/` holds the validation summary, data dictionary, lifecycle rules and checksums for the full 20,000 / 10,000 / 100,000 run.
-
-Regenerate the full dataset: `java ReturnableAssetGenerator.java --seed 20261022 --assets 20000 --shipments 10000 --events 100000 --out out`
