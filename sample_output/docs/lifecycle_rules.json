@@ -1,0 +1,26 @@
+{
+  "states": ["UNCOMMISSIONED", "AT_WAREHOUSE", "IN_TRANSIT_OUT", "WITH_CUSTOMER", "IN_TRANSIT_RETURN", "IN_TRANSIT_TRANSFER", "IN_REPAIR", "LOST", "SCRAPPED"],
+  "transitions": [
+    {"from":"UNCOMMISSIONED","event":"COMMISSION","to":"AT_WAREHOUSE"},
+    {"from":"AT_WAREHOUSE","event":"DISPATCH","to":"IN_TRANSIT_OUT"},
+    {"from":"IN_TRANSIT_OUT","event":"DELIVERY_RECEIPT","to":"WITH_CUSTOMER"},
+    {"from":"WITH_CUSTOMER","event":"RETURN_PICKUP","to":"IN_TRANSIT_RETURN"},
+    {"from":"IN_TRANSIT_RETURN","event":"RETURN_RECEIPT","to":"AT_WAREHOUSE"},
+    {"from":"AT_WAREHOUSE","event":"TRANSFER_DISPATCH","to":"IN_TRANSIT_TRANSFER"},
+    {"from":"IN_TRANSIT_TRANSFER","event":"TRANSFER_RECEIPT","to":"AT_WAREHOUSE"},
+    {"from":"AT_WAREHOUSE","event":"REPAIR_SEND","to":"IN_REPAIR"},
+    {"from":"IN_REPAIR","event":"REPAIR_RECEIPT","to":"AT_WAREHOUSE"},
+    {"from":"WITH_CUSTOMER","event":"MARK_LOST","to":"LOST"},
+    {"from":"IN_TRANSIT_OUT","event":"MARK_LOST","to":"LOST"},
+    {"from":"IN_TRANSIT_RETURN","event":"MARK_LOST","to":"LOST"},
+    {"from":"AT_WAREHOUSE","event":"SCRAP","to":"SCRAPPED"}
+  ],
+  "rules": {
+    "loss": "asset outstanding (dispatch to receipt, or to as-of date) longer than loss_threshold_days is LOST (MARK_LOST at dispatch+threshold, deposit forfeited)",
+    "non_return": "theft_risk_index*(0.5+site_risk)+noise > 0.4 or return would arrive after loss threshold",
+    "damage": "score=fragility*(0.6+0.4*min(2,days/max_loan))+0.6*carrier_damage_factor+noise; PASS<0.56; MINOR<0.7; MAJOR<0.88; else IRREPARABLE",
+    "repair": "FAIL_REPAIRABLE -> REPAIR_SEND unless repairs >= max_repair_cycles (then SCRAP); post-repair score=0.45*score+noise must be < 0.4 else SCRAP",
+    "deposit": "CHARGE at dispatch; at intake inspection: LATE_FEE 2%/day of deposit capped at 50%, DAMAGE_DEDUCTION 15%(MINOR)/40%(MAJOR), DAMAGE_FORFEIT 100%(IRREPARABLE), remainder REFUNDED; LOSS_FORFEIT 100% on MARK_LOST",
+    "dispute": "delivery late > 72h => LATE_DELIVERY; transit damage score > 0.9 => CONDITION_MISMATCH; resolved after 3-30 days when before as-of date"
+  }
+}

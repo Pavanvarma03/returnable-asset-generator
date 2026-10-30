@@ -1,0 +1,17 @@
+Run 1 vs Run 2 (seed 20261022): row counts and SHA-256 of every file identical
+
+reusable_asset rows: 20000 / 20000
+shipment rows: 10000 / 10000
+custody_event rows: 100000 / 100000
+fdf8ae43ed8128328a3ea468dfd5c09b10a7a3f7ac8eb37fc5e11d9acec0bb8c  data/actor.csv
+a413be1c11174a14af466f905a10253acad347f6477ff3bb6ff253b0d37055a1  data/asset_type.csv
+b1659f374bfb2afd94fd3efd73f668ad7d77e776210edb81cdd4b4055c20066a  data/custody_event.csv
+6cc17ef2251f03f9a7483eba91d5b41ad0b3506bbf90af4b02f376177aa7de54  data/deposit_ledger.csv
+d76f1fde5aba4389d6016aba6cb74f99ce5bab56b6749828fa9139fb4a687639  data/inspection.csv
+daf2e1dc8166334c8c0aab64a168f88da1fbb12636634a3d05043365803afca4  data/location.csv
+16dc14c5eb961d7fd61ff8c7fa685aba31a1dacd924d4532beb7dc956b3ce7ae  data/owner.csv
+22490b4d25a49fa2bb0eb4f4b1816d772ba7acf614303f5c4e6b26c4e9388a45  data/repair.csv
+cd522566e1eb093e6ce56a0420d30deb99565579f573de19368944e1c4536948  data/return_authorization.csv
+0710028c578d374fe352cc881375ec5b9bcd82bb823ccdfce402c69ca958256d  data/reusable_asset.csv
+b9f80c930ee343fc925d506e62c1737219edac48aeb9601b691bce0b92514797  data/shipment.csv
+72b53040123a6483ff428ff7291304525049ad5baeda685b83ea95608d12393e  data/shipment_asset.csv
