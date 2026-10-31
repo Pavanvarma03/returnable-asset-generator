@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Compile to ./build
-set -euo pipefail
+set -e
 cd "$(dirname "$0")"
 mkdir -p build
 javac -d build src/main/java/assetgen/*.java

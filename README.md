@@ -1,76 +1,62 @@
-# Returnable assets: synthetic custody, return and deposit data
+# Returnable asset data generator
 
-Coordinates return merchandise, reusable packaging, pallets and equipment across locations and custody transitions.
+Java program that creates test data for tracking returnable assets (pallets, crates, roll cages, kegs, scanners) as they move between warehouses, customers and repair shops. It produces 12 related tables, a few labelled errors, and a short operations report.
 
-## Run
+Default size: 20,000 assets, 10,000 shipments, 100,000 custody events. Seed: 20261022.
 
-```
-./build.sh
-./run.sh --seed 20261022 --assets 20000 --shipments 10000 --events 100000 --as-of 2026-10-30 --out out
-```
+## Requirements
 
-Starter set: `./run.sh --assets 2000 --shipments 1000 --events 10000 --out starter`. Same generator, same rules, only the scale changes. Java 17+, no dependencies. `--sql false` skips SQL.
+Java 17 or newer.
 
-## Source layout (`src/main/java/assetgen`)
+## Build and run
 
-| File | Role |
-|---|---|
-| `Main` | Entry point: parse options, calibrate volume, inject anomalies, validate, export |
-| `Cli` | Command-line options |
-| `Config` | Run parameters, business-rule constants, asset-type catalogue, lifecycle state machine |
-| `Schema` | Table definitions: fields, types, enums, keys, validation rules |
-| `Table`, `Col` | Table and column model; CSV, DDL and INSERT export |
-| `World` | Master data and the day-by-day simulation (dispatch, return, inspection, repair, deposits) |
-| `AnomalyInjector` | Injects the five labelled edge cases and writes the ground truth |
-| `Validator` | Integrity checks, derived values, reconciliation, anomaly detection |
-| `Report` | Operations report: overdue and lost assets, deposit exposure, loss and damage rates, carrier and site performance, exception queue |
-| `Exporter`, `Output` | Writes data, docs, manifest and checksums |
-| `IntList`, `LongList` | Primitive growable arrays |
+Mac or Linux:
 
-Complexity: O(A+S+E). Pools are swap-remove arrays, asset release uses day buckets (counting sort), derivation uses counting sort and hash maps. Volume calibration repeats the O(N) simulation a small constant number of times.
+    ./build.sh
+    ./run.sh --out out
 
-## Layout
+Windows:
 
-- `data/` core entities (CSV): asset_type, owner, location, actor (supporting), reusable_asset, shipment, shipment_asset (bridge), return_authorization, custody_event, inspection, repair, deposit_ledger
-- `derived/` values computed from source records only: asset_status_derived (state, location, days outstanding, loss status, deposit held), deposit_account_derived
-- `reports/` operations_report.md, overdue_assets.csv (worst first, with recommended action), exceptions_queue.csv. Computed from the data, never from the ground truth.
-- `ground_truth/` ground_truth.csv/json (injected anomalies) and asset_labels.csv (expected outcomes). Never an input feature; no data table references it.
-- `sql/` schema.sql (PK, FK, CHECK) and seed.sql (insert order respects FKs)
-- `docs/` data_dictionary.md, lifecycle_rules.json, validation_summary.md/json, source_manifest.json, generator_command.txt
-- `checksums.sha256` SHA-256 of every file
+    mkdir build
+    javac -d build src\main\java\assetgen\*.java
+    java -cp build assetgen.Main --out out
 
-## IDs
+Options: --seed, --assets, --shipments, --events, --as-of (date, default 2026-10-30), --out, --sql false.
 
-ASSET-0000001, SHP-2026-000001, RMA-2026-000001, REP-2026-000001, CUST-<asset-id>-000001 (per-asset sequence, gap-free). Supporting IDs: AT-0001, OWN-0001, LOC-0001, ACT-0001, INS-2026-000001, LED-2026-000001, GT-000001. IDs are zero-padded counters assigned once and never changed; they are assigned in generation order, not strictly by timestamp.
+Small set:
 
-## Process
+    ./run.sh --assets 2000 --shipments 1000 --events 10000 --out small
 
-1. Master data: asset types (lifecycle rules), owners, locations, actors, assets with COMMISSION events.
-2. A day-by-day sweep dispatches batches from warehouse pools. Shipments are paired OUTBOUND/RETURN trips plus warehouse TRANSFERs; assets are drawn from the pool of the origin warehouse, so every event has valid parents and a continuous location chain.
-3. Each loan: DISPATCH, DELIVERY_RECEIPT, RMA, RETURN_PICKUP, RETURN_RECEIPT, intake inspection, then release to pool, repair (REPAIR_SEND, REPAIR_RECEIPT, post-repair inspection) or SCRAP. Lost assets get MARK_LOST. Deposit ledger rows are append-only.
-4. Outcomes follow the rules in `docs/lifecycle_rules.json` (inputs are carrier on-time rate and damage factor, site risk tier and dwell, type fragility, theft risk, loan length); noise is a latent term, outcomes are never assigned independently.
-5. After the valid baseline, five labelled anomalies are injected (SIMULTANEOUS_LOCATIONS, RETURN_BEFORE_DISPATCH, DOUBLE_REFUND, REPAIR_WITHOUT_INSPECTION, MISSING_ACTOR), each recorded in the ground truth. Only the targeted rows change.
-6. The validator recomputes everything from source records (state replay, locations, days outstanding, deposit balances) and compares with the ground truth.
+It takes a few seconds and ends with a line like `done: 89/89 checks pass`.
 
-## Cardinalities
+## Output
 
-asset_type 1:N reusable_asset; owner 1:N location/actor/asset; reusable_asset 1:N custody_event, inspection, repair, return_authorization; shipment N:M reusable_asset through shipment_asset; RETURN shipment 0..1:1 paired OUTBOUND; custody_event 1:0..1 inspection; inspection 1:0..1 repair; deposit account (asset, dispatch shipment) 1:N ledger rows. Optional FKs: custody_event.shipment_id/rma_id/actor_id, repair.inspection_id, shipment.paired_shipment_id.
+- data: asset_type, owner, location, actor, reusable_asset, shipment, shipment_asset, return_authorization, custody_event, inspection, repair, deposit_ledger
+- derived: asset_status_derived, deposit_account_derived
+- ground_truth: ground_truth.csv/json (the injected errors), asset_labels.csv
+- reports: operations_report.md, overdue_assets.csv, exceptions_queue.csv
+- sql: schema.sql, seed.sql
+- docs: data_dictionary.md, lifecycle_rules.json, validation_summary.md/json, source_manifest.json
+- checksums.sha256
 
-## Lifecycle states
+The same seed and options give the same files. Compare checksums.sha256 with full_run_docs/checksums_full_run.sha256 to check.
 
-UNCOMMISSIONED, AT_WAREHOUSE, IN_TRANSIT_OUT, WITH_CUSTOMER, IN_TRANSIT_RETURN, IN_TRANSIT_TRANSFER, IN_REPAIR, LOST (terminal), SCRAPPED (terminal). Effective dates: asset_type.effective_from/to, asset.commissioned_date, owner/location/actor active_from.
+## Source files
 
-## Reading the data
+src/main/java/assetgen:
 
-Location after an event is `to_location_id` on arrival events and unknown (in transit) otherwise. Days outstanding = floor((end - last DISPATCH)/86400), where end is the return receipt or the as-of date. The as-of date is a parameter; all timestamps are earlier than it, and later planned steps are shown as PLANNED/IN_TRANSIT.
+- Main, Cli: start-up and options
+- Config: settings, rule constants, asset types, lifecycle states
+- Schema, Table, Col: table definitions and export
+- World: creates master data and simulates dispatches, returns, inspections, repairs and deposits
+- AnomalyInjector: adds the five errors and writes the ground truth
+- Validator: checks keys, joins, dates, deposit totals and lifecycle rules
+- Report: overdue and lost assets, deposits, carriers, sites, exceptions
+- Exporter, Output: write the files
+- IntList, LongList: small int and long arrays
 
-## Provenance
+## Notes
 
-Fully synthetic. No external dataset, no personal data. See `docs/source_manifest.json`.
-
-## Repository contents
-
-- `src/main/java/assetgen/` is the generator source.
-- `build.sh`, `run.sh` build and run it.
-- `sample_output/` is the starter dataset and its report (2,000 assets, 1,000 shipments, 10,000 events).
-- `full_run_docs/` holds the validation summary, data dictionary, lifecycle rules and checksums for the full 20,000 / 10,000 / 100,000 run.
+- All data is made up.
+- Event numbers and IDs follow creation order, not strictly time order.
+- The ground_truth folder is only for scoring a detector. The report and validator do not read it.

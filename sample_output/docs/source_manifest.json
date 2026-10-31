@@ -19,7 +19,7 @@
     {"path":"data/shipment_asset.csv","bytes":169607,"sha256":"f8793d40ab759741a63a968b312ee65bcb27aba5265e40b8a606b5bcd424ccbc"},
     {"path":"derived/asset_status_derived.csv","bytes":248159,"sha256":"b771edfdcf664f0105e5e8977d79db22034d78962d5b255cb6fe62fa75e95a42"},
     {"path":"derived/deposit_account_derived.csv","bytes":111347,"sha256":"e657ecd446899d968040906182bc29f9de3c7f553a344dc6de9a80326bc4721c"},
-    {"path":"docs/README.md","bytes":4653,"sha256":"7b34f9f631080f01f8e196c3b66d23dd426605d554e24b7172dd0e89396ec0c6"},
+    {"path":"docs/README.md","bytes":1718,"sha256":"860e5cd2cd95d774e0ea121b7e150a2cd235629a8adec2328b427eb054e94d0c"},
     {"path":"docs/data_dictionary.md","bytes":18161,"sha256":"b1a2ece67a7e76e70d8c51859bb0a5cf3caac7b640b0331f1011acd5cd977e22"},
     {"path":"docs/generator_command.txt","bytes":122,"sha256":"24cadade659483eda75b700a108f9074e8ac7c11c0b9c8adb83e60027cd9f9d1"},
     {"path":"docs/lifecycle_rules.json","bytes":2103,"sha256":"2b72b47439e2b97d7b82901d767268f710618239ec3c1c7daeba5308ba96830f"},

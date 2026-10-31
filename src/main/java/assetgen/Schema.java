@@ -2,174 +2,350 @@ package assetgen;
 
 import static assetgen.Config.*;
 
-/** Table definitions (data dictionary, keys, enums and validation rules) for all entities. */
 public final class Schema {
-  final Table tType, tOwn, tLoc, tAct, tAsset, tShip, tSA, tRma, tEvt, tIns, tRep, tLed, tGT;
 
-  Schema() {
-    tType = new Table("asset_type", "asset_type_id", "Reusable asset type and its lifecycle/deposit rules")
-      .rel("asset_type 1:N reusable_asset")
-      .c("asset_type_id","STR",true,"","","PK; AT-NNNN; unique")
-      .c("type_code","STR",true,"","","unique short code")
-      .c("type_name","STR",true,"","","")
-      .c("category","ENUM",true,"PALLET|REUSABLE_PACKAGING|EQUIPMENT|RETURN_CONTAINER","","")
-      .c("deposit_amount","DEC2",true,"","USD","> 0; charged per dispatch")
-      .c("max_loan_days","INT",true,"","days","7..120; overdue after this")
-      .c("loss_threshold_days","INT",true,"","days","> max_loan_days; outstanding longer than this => LOST")
-      .c("max_repair_cycles","INT",true,"","count","0..5; exceeded => SCRAP")
-      .c("fragility_index","DEC4",true,"","0-1","damage propensity input of the inspection rule")
-      .c("theft_risk_index","DEC4",true,"","0-1","loss propensity input of the loss rule")
-      .c("effective_from","DATE",true,"","","rule effective date")
-      .c("effective_to","DATE",false,"","","NULL = still effective; >= effective_from");
-    tOwn = new Table("owner", "owner_id", "Organisation that owns assets, operates sites or moves goods")
-      .rel("owner 1:N location, 1:N actor, 1:N reusable_asset (legal owner)")
-      .c("owner_id","STR",true,"","","PK; OWN-NNNN; unique")
-      .c("owner_name","STR",true,"","","synthetic name")
-      .c("owner_type","ENUM",true,"NETWORK_OPERATOR|SUPPLIER|CARRIER|WAREHOUSE_OPERATOR|REPAIR_VENDOR|CUSTOMER","","")
-      .c("country","STR",true,"","","ISO-3166 alpha-2")
-      .c("on_time_rate","DEC4",false,"","0-1","carriers only: share of on-time deliveries")
-      .c("damage_factor","DEC4",false,"","0-1","carriers only: handling damage factor")
-      .c("active_from","DATE",true,"","","");
-    tLoc = new Table("location", "location_id", "Physical site: warehouse, customer site or repair shop")
-      .rel("location N:1 owner; location 1:N shipment (origin/destination)")
-      .c("location_id","STR",true,"","","PK; LOC-NNNN; unique")
-      .c("location_name","STR",true,"","","")
-      .c("location_type","ENUM",true,"WAREHOUSE|CUSTOMER_SITE|REPAIR_SHOP","","")
-      .c("owner_id","STR",true,"","","FK owner.owner_id").fk("owner_id","owner.owner_id")
-      .c("city","STR",true,"","","")
-      .c("country","STR",true,"","","")
-      .c("latitude","DEC4",true,"","deg","-90..90")
-      .c("longitude","DEC4",true,"","deg","-180..180")
-      .c("risk_tier","ENUM",false,"LOW|MEDIUM|HIGH","","customer sites only: asset-retention risk")
-      .c("typical_dwell_days","INT",false,"","days","customer sites only: usual holding time")
-      .c("active_from","DATE",true,"","","");
-    tAct = new Table("actor", "actor_id", "Named role-holder performing custody actions (supporting entity)")
-      .rel("owner 1:N actor; actor 1:N custody_event")
-      .c("actor_id","STR",true,"","","PK; ACT-NNNN; unique")
-      .c("owner_id","STR",true,"","","FK owner.owner_id").fk("owner_id","owner.owner_id")
-      .c("actor_role","ENUM",true,"SUPPLIER|PLANNER|CARRIER|WAREHOUSE_OPERATOR|LOGISTICS_ANALYST|OPERATIONS_MANAGER","","")
-      .c("display_name","STR",true,"","","synthetic label, no personal data")
-      .c("active_from","DATE",true,"","","");
-    tAsset = new Table("reusable_asset", "asset_id", "Individually tracked reusable asset (static attributes; state is derived from events)")
-      .rel("asset_type 1:N reusable_asset; owner 1:N reusable_asset; reusable_asset 1:N custody_event; N:M shipment via shipment_asset")
-      .c("asset_id","STR",true,"","","PK; ASSET-NNNNNNN; unique; immutable")
-      .c("asset_type_id","STR",true,"","","FK").fk("asset_type_id","asset_type.asset_type_id")
-      .c("owner_id","STR",true,"","","FK; legal owner (supplier)").fk("owner_id","owner.owner_id")
-      .c("serial_number","STR",true,"","","unique")
-      .c("home_location_id","STR",true,"","","FK; warehouse of commissioning").fk("home_location_id","location.location_id")
-      .c("manufactured_date","DATE",true,"","","<= commissioned_date")
-      .c("commissioned_date","DATE",true,"","","equals date of the COMMISSION custody event");
-    tShip = new Table("shipment", "shipment_id", "Dispatch, return or inter-warehouse transfer movement")
-      .rel("shipment 1:N shipment_asset N:1 reusable_asset (N:M via bridge); RETURN shipment 0..1:1 paired OUTBOUND shipment")
-      .c("shipment_id","STR",true,"","","PK; SHP-2026-NNNNNN; unique")
-      .c("shipment_type","ENUM",true,"OUTBOUND|RETURN|TRANSFER","","")
-      .c("paired_shipment_id","STR",false,"","","FK shipment (RETURN -> its OUTBOUND)").fk("paired_shipment_id","shipment.shipment_id")
-      .c("origin_location_id","STR",true,"","","FK").fk("origin_location_id","location.location_id")
-      .c("dest_location_id","STR",true,"","","FK; <> origin").fk("dest_location_id","location.location_id")
-      .c("carrier_owner_id","STR",true,"","","FK owner (CARRIER)").fk("carrier_owner_id","owner.owner_id")
-      .c("shipper_owner_id","STR",true,"","","FK owner").fk("shipper_owner_id","owner.owner_id")
-      .c("receiver_owner_id","STR",true,"","","FK owner").fk("receiver_owner_id","owner.owner_id")
-      .c("planner_actor_id","STR",false,"","","FK actor (PLANNER)").fk("planner_actor_id","actor.actor_id")
-      .c("planned_ship_ts","TS",true,"","UTC","")
-      .c("actual_ship_ts","TS",false,"","UTC",">= planned_ship_ts; NULL if not shipped")
-      .c("expected_delivery_ts","TS",true,"","UTC","> planned_ship_ts")
-      .c("actual_delivery_ts","TS",false,"","UTC",">= actual_ship_ts; NULL if not delivered")
-      .c("status","ENUM",true,"PLANNED|IN_TRANSIT|DELIVERED|CANCELLED","","derived from timestamps vs as-of date and bridge rows")
-      .c("asset_count","INT",true,"","count","= number of shipment_asset rows (derived)")
-      .c("delay_hours","INT",false,"","hours","= (actual_delivery - expected_delivery)/3600 (derived)");
-    tSA = new Table("shipment_asset", "shipment_id,asset_id", "Bridge table: assets carried by a shipment (N:M)")
-      .rel("shipment N:M reusable_asset")
-      .c("shipment_id","STR",true,"","","FK; part of composite PK").fk("shipment_id","shipment.shipment_id")
-      .c("asset_id","STR",true,"","","FK; part of composite PK").fk("asset_id","reusable_asset.asset_id")
-      .c("line_status","ENUM",true,"PLANNED|SHIPPED|RECEIVED","","")
-      .c("line_no","INT",true,"","","position within shipment, >= 1");
-    tRma = new Table("return_authorization", "rma_id", "Authorisation for an asset to come back (one per asset loan)")
-      .rel("reusable_asset 1:N return_authorization; return_authorization N:1 outbound shipment; N:1 return shipment (optional)")
-      .c("rma_id","STR",true,"","","PK; RMA-2026-NNNNNN; unique")
-      .c("asset_id","STR",true,"","","FK").fk("asset_id","reusable_asset.asset_id")
-      .c("outbound_shipment_id","STR",true,"","","FK shipment (OUTBOUND)").fk("outbound_shipment_id","shipment.shipment_id")
-      .c("return_shipment_id","STR",false,"","","FK shipment (RETURN); NULL for overdue recalls").fk("return_shipment_id","shipment.shipment_id")
-      .c("authorizing_owner_id","STR",true,"","","FK owner; asset legal owner").fk("authorizing_owner_id","owner.owner_id")
-      .c("reason_code","ENUM",true,"END_OF_LOAN|OVERDUE_RECALL","","")
-      .c("authorized_ts","TS",true,"","UTC","after delivery")
-      .c("expected_return_date","DATE",true,"","","delivery date + max_loan_days")
-      .c("expiry_date","DATE",true,"","","dispatch date + loss_threshold_days")
-      .c("status","ENUM",true,"AUTHORIZED|IN_TRANSIT|RECEIVED|EXPIRED","","")
-      .c("closed_ts","TS",false,"","UTC","set when RECEIVED or EXPIRED");
-    tEvt = new Table("custody_event", "custody_event_id", "Append-only custody/state-change event (history is never overwritten)")
-      .rel("reusable_asset 1:N custody_event; shipment 0..1:N custody_event; return_authorization 0..1:N custody_event; actor 0..1:N custody_event")
-      .c("custody_event_id","STR",true,"","","PK; CUST-<asset-id>-NNNNNN; unique")
-      .c("asset_id","STR",true,"","","FK").fk("asset_id","reusable_asset.asset_id")
-      .c("seq_no","INT",true,"","","1..n per asset, gap-free; matches ID suffix")
-      .c("event_type","ENUM",true,E_EVT,"","see lifecycle_rules.json")
-      .c("event_ts","TS",true,"","UTC","non-decreasing along seq_no")
-      .c("from_location_id","STR",false,"","","FK; NULL for COMMISSION").fk("from_location_id","location.location_id")
-      .c("to_location_id","STR",false,"","","FK; set on arrival events only (asset location after the event), NULL while in transit/terminal").fk("to_location_id","location.location_id")
-      .c("shipment_id","STR",false,"","","FK").fk("shipment_id","shipment.shipment_id")
-      .c("rma_id","STR",false,"","","FK").fk("rma_id","return_authorization.rma_id")
-      .c("from_owner_id","STR",false,"","","FK custodian before").fk("from_owner_id","owner.owner_id")
-      .c("to_owner_id","STR",false,"","","FK custodian after").fk("to_owner_id","owner.owner_id")
-      .c("actor_id","STR",false,"","","FK; business rule: must be present (missing => MISSING_ACTOR anomaly)").fk("actor_id","actor.actor_id")
-      .c("actor_role","ENUM",false,"SUPPLIER|PLANNER|CARRIER|WAREHOUSE_OPERATOR|LOGISTICS_ANALYST|OPERATIONS_MANAGER","","role of actor")
-      .c("condition_reported","ENUM",true,"GOOD|DAMAGED|NA","","")
-      .c("dispute_flag","BOOL",true,"","","true iff dispute_reason present")
-      .c("dispute_reason","ENUM",false,"LATE_DELIVERY|CONDITION_MISMATCH","","late > 72h, or transit-damage score above cut")
-      .c("dispute_status","ENUM",true,"NONE|OPEN|RESOLVED_ACCEPTED|RESOLVED_REJECTED","","")
-      .c("dispute_resolved_ts","TS",false,"","UTC","only when RESOLVED_*")
-      .c("recorded_ts","TS",true,"","UTC","ingestion time, >= event_ts for baseline rows")
-      .c("source_system","ENUM",true,"WMS_SCAN|TMS_FEED|MANUAL_ENTRY","","");
-    tIns = new Table("inspection", "inspection_id", "Inspection of a returned or repaired asset")
-      .rel("custody_event 1:0..1 inspection; reusable_asset 1:N inspection")
-      .c("inspection_id","STR",true,"","","PK; INS-2026-NNNNNN; unique")
-      .c("asset_id","STR",true,"","","FK").fk("asset_id","reusable_asset.asset_id")
-      .c("custody_event_id","STR",true,"","","FK; RETURN_RECEIPT or REPAIR_RECEIPT event").fk("custody_event_id","custody_event.custody_event_id")
-      .c("rma_id","STR",false,"","","FK").fk("rma_id","return_authorization.rma_id")
-      .c("inspection_stage","ENUM",true,"RETURN_INTAKE|POST_REPAIR","","")
-      .c("inspection_ts","TS",true,"","UTC","> triggering event ts")
-      .c("inspector_actor_id","STR",true,"","","FK").fk("inspector_actor_id","actor.actor_id")
-      .c("location_id","STR",true,"","","FK").fk("location_id","location.location_id")
-      .c("result","ENUM",true,"PASS|FAIL_REPAIRABLE|FAIL_UNREPAIRABLE","","")
-      .c("severity","ENUM",true,"NONE|MINOR|MAJOR|IRREPARABLE","","from damage_score bands")
-      .c("damage_score","DEC4",true,"","0-1.5","fragility*(0.6+0.4*loan_ratio)+0.6*carrier_damage+noise");
-    tRep = new Table("repair", "repair_id", "Repair job on a damaged asset")
-      .rel("inspection 1:0..1 repair; reusable_asset 1:N repair")
-      .c("repair_id","STR",true,"","","PK; REP-2026-NNNNNN; unique")
-      .c("asset_id","STR",true,"","","FK").fk("asset_id","reusable_asset.asset_id")
-      .c("inspection_id","STR",false,"","","FK; triggering inspection (rule: required, missing => REPAIR_WITHOUT_INSPECTION)").fk("inspection_id","inspection.inspection_id")
-      .c("send_event_id","STR",true,"","","FK REPAIR_SEND event").fk("send_event_id","custody_event.custody_event_id")
-      .c("receipt_event_id","STR",false,"","","FK REPAIR_RECEIPT event; NULL while open").fk("receipt_event_id","custody_event.custody_event_id")
-      .c("repair_location_id","STR",true,"","","FK").fk("repair_location_id","location.location_id")
-      .c("vendor_owner_id","STR",true,"","","FK").fk("vendor_owner_id","owner.owner_id")
-      .c("repair_type","ENUM",true,"CLEAN_AND_SANITIZE|COMPONENT_REPLACEMENT|STRUCTURAL_REPAIR","","")
-      .c("severity","ENUM",true,"MINOR|MAJOR","","copied from inspection")
-      .c("opened_ts","TS",true,"","UTC","")
-      .c("closed_ts","TS",false,"","UTC",">= opened_ts")
-      .c("cost_amount","DEC2",false,"","USD","set when closed")
-      .c("status","ENUM",true,"OPEN|CLOSED","","")
-      .c("outcome","ENUM",true,"PENDING|RESTORED|SCRAPPED","","from post-repair inspection")
-      .c("post_repair_inspection_id","STR",false,"","","FK").fk("post_repair_inspection_id","inspection.inspection_id");
-    tLed = new Table("deposit_ledger", "ledger_id", "Append-only deposit charges, refunds and deductions")
-      .rel("deposit account = (asset_id, dispatch_shipment_id); account 1:N ledger rows; balance derived")
-      .c("ledger_id","STR",true,"","","PK; LED-2026-NNNNNN; unique")
-      .c("asset_id","STR",true,"","","FK").fk("asset_id","reusable_asset.asset_id")
-      .c("dispatch_shipment_id","STR",true,"","","FK OUTBOUND shipment (account key)").fk("dispatch_shipment_id","shipment.shipment_id")
-      .c("rma_id","STR",false,"","","FK").fk("rma_id","return_authorization.rma_id")
-      .c("depositor_owner_id","STR",true,"","","FK customer owner").fk("depositor_owner_id","owner.owner_id")
-      .c("source_event_id","STR",false,"","","FK custody event that caused the entry").fk("source_event_id","custody_event.custody_event_id")
-      .c("inspection_id","STR",false,"","","FK").fk("inspection_id","inspection.inspection_id")
-      .c("entry_ts","TS",true,"","UTC","")
-      .c("entry_type","ENUM",true,"CHARGE|REFUND|DEDUCTION","","")
-      .c("reason_code","ENUM",true,"DEPOSIT_ON_DISPATCH|RETURN_REFUND|LATE_FEE|DAMAGE_DEDUCTION|DAMAGE_FORFEIT|LOSS_FORFEIT","","")
-      .c("amount","DEC2",true,"","USD","> 0; sign is implied by entry_type")
-      .c("currency","ENUM",true,"USD","","");
-    tGT = new Table("ground_truth", "gt_id", "Labelled injected anomalies (kept out of input data)")
-      .c("gt_id","STR",true,"","","GT-NNNNNN")
-      .c("entity_type","STR",true,"","","table affected")
-      .c("entity_id","STR",true,"","","primary key of the anomalous row")
-      .c("asset_id","STR",true,"","","")
-      .c("issue_type","ENUM",true,"SIMULTANEOUS_LOCATIONS|RETURN_BEFORE_DISPATCH|DOUBLE_REFUND|REPAIR_WITHOUT_INSPECTION|MISSING_ACTOR","","")
-      .c("related_entity_id","STR",false,"","","e.g. the original event / ledger row")
-      .c("expected_decision","STR",true,"","","expected pipeline decision")
-      .c("description","STR",true,"","","");
-  }
+    final Table tType, tOwn, tLoc, tAct, tAsset, tShip, tSA, tRma, tEvt, tIns, tRep, tLed, tGT;
+
+    Schema() {
+        tType = new Table(
+            "asset_type",
+            "asset_type_id",
+            "Reusable asset type and its lifecycle/deposit rules"
+        )
+            .rel("asset_type 1:N reusable_asset")
+            .c("asset_type_id", "STR", true, "", "", "PK; AT-NNNN; unique")
+            .c("type_code", "STR", true, "", "", "unique short code")
+            .c("type_name", "STR", true, "", "", "")
+            .c("category", "ENUM", true, "PALLET|REUSABLE_PACKAGING|EQUIPMENT|RETURN_CONTAINER", "", "")
+            .c("deposit_amount", "DEC2", true, "", "USD", "> 0; charged per dispatch")
+            .c("max_loan_days", "INT", true, "", "days", "7..120; overdue after this")
+            .c(
+                "loss_threshold_days",
+                "INT",
+                true,
+                "",
+                "days",
+                "> max_loan_days; outstanding longer than this => LOST"
+            )
+            .c("max_repair_cycles", "INT", true, "", "count", "0..5; exceeded => SCRAP")
+            .c("fragility_index", "DEC4", true, "", "0-1", "damage propensity input of the inspection rule")
+            .c("theft_risk_index", "DEC4", true, "", "0-1", "loss propensity input of the loss rule")
+            .c("effective_from", "DATE", true, "", "", "rule effective date")
+            .c("effective_to", "DATE", false, "", "", "NULL = still effective; >= effective_from");
+        tOwn = new Table("owner", "owner_id", "Organisation that owns assets, operates sites or moves goods")
+            .rel("owner 1:N location, 1:N actor, 1:N reusable_asset (legal owner)")
+            .c("owner_id", "STR", true, "", "", "PK; OWN-NNNN; unique")
+            .c("owner_name", "STR", true, "", "", "synthetic name")
+            .c(
+                "owner_type",
+                "ENUM",
+                true,
+                "NETWORK_OPERATOR|SUPPLIER|CARRIER|WAREHOUSE_OPERATOR|REPAIR_VENDOR|CUSTOMER",
+                "",
+                ""
+            )
+            .c("country", "STR", true, "", "", "ISO-3166 alpha-2")
+            .c("on_time_rate", "DEC4", false, "", "0-1", "carriers only: share of on-time deliveries")
+            .c("damage_factor", "DEC4", false, "", "0-1", "carriers only: handling damage factor")
+            .c("active_from", "DATE", true, "", "", "");
+        tLoc = new Table("location", "location_id", "Physical site: warehouse, customer site or repair shop")
+            .rel("location N:1 owner; location 1:N shipment (origin/destination)")
+            .c("location_id", "STR", true, "", "", "PK; LOC-NNNN; unique")
+            .c("location_name", "STR", true, "", "", "")
+            .c("location_type", "ENUM", true, "WAREHOUSE|CUSTOMER_SITE|REPAIR_SHOP", "", "")
+            .c("owner_id", "STR", true, "", "", "FK owner.owner_id")
+            .fk("owner_id", "owner.owner_id")
+            .c("city", "STR", true, "", "", "")
+            .c("country", "STR", true, "", "", "")
+            .c("latitude", "DEC4", true, "", "deg", "-90..90")
+            .c("longitude", "DEC4", true, "", "deg", "-180..180")
+            .c("risk_tier", "ENUM", false, "LOW|MEDIUM|HIGH", "", "customer sites only: asset-retention risk")
+            .c("typical_dwell_days", "INT", false, "", "days", "customer sites only: usual holding time")
+            .c("active_from", "DATE", true, "", "", "");
+        tAct = new Table(
+            "actor",
+            "actor_id",
+            "Named role-holder performing custody actions (supporting entity)"
+        )
+            .rel("owner 1:N actor; actor 1:N custody_event")
+            .c("actor_id", "STR", true, "", "", "PK; ACT-NNNN; unique")
+            .c("owner_id", "STR", true, "", "", "FK owner.owner_id")
+            .fk("owner_id", "owner.owner_id")
+            .c(
+                "actor_role",
+                "ENUM",
+                true,
+                "SUPPLIER|PLANNER|CARRIER|WAREHOUSE_OPERATOR|LOGISTICS_ANALYST|OPERATIONS_MANAGER",
+                "",
+                ""
+            )
+            .c("display_name", "STR", true, "", "", "synthetic label, no personal data")
+            .c("active_from", "DATE", true, "", "", "");
+        tAsset = new Table(
+            "reusable_asset",
+            "asset_id",
+            "Individually tracked reusable asset (static attributes; state is derived from events)"
+        )
+            .rel(
+                "asset_type 1:N reusable_asset; owner 1:N reusable_asset; reusable_asset 1:N custody_event; N:M shipment via shipment_asset"
+            )
+            .c("asset_id", "STR", true, "", "", "PK; ASSET-NNNNNNN; unique; immutable")
+            .c("asset_type_id", "STR", true, "", "", "FK")
+            .fk("asset_type_id", "asset_type.asset_type_id")
+            .c("owner_id", "STR", true, "", "", "FK; legal owner (supplier)")
+            .fk("owner_id", "owner.owner_id")
+            .c("serial_number", "STR", true, "", "", "unique")
+            .c("home_location_id", "STR", true, "", "", "FK; warehouse of commissioning")
+            .fk("home_location_id", "location.location_id")
+            .c("manufactured_date", "DATE", true, "", "", "<= commissioned_date")
+            .c("commissioned_date", "DATE", true, "", "", "equals date of the COMMISSION custody event");
+        tShip = new Table("shipment", "shipment_id", "Dispatch, return or inter-warehouse transfer movement")
+            .rel(
+                "shipment 1:N shipment_asset N:1 reusable_asset (N:M via bridge); RETURN shipment 0..1:1 paired OUTBOUND shipment"
+            )
+            .c("shipment_id", "STR", true, "", "", "PK; SHP-2026-NNNNNN; unique")
+            .c("shipment_type", "ENUM", true, "OUTBOUND|RETURN|TRANSFER", "", "")
+            .c("paired_shipment_id", "STR", false, "", "", "FK shipment (RETURN -> its OUTBOUND)")
+            .fk("paired_shipment_id", "shipment.shipment_id")
+            .c("origin_location_id", "STR", true, "", "", "FK")
+            .fk("origin_location_id", "location.location_id")
+            .c("dest_location_id", "STR", true, "", "", "FK; <> origin")
+            .fk("dest_location_id", "location.location_id")
+            .c("carrier_owner_id", "STR", true, "", "", "FK owner (CARRIER)")
+            .fk("carrier_owner_id", "owner.owner_id")
+            .c("shipper_owner_id", "STR", true, "", "", "FK owner")
+            .fk("shipper_owner_id", "owner.owner_id")
+            .c("receiver_owner_id", "STR", true, "", "", "FK owner")
+            .fk("receiver_owner_id", "owner.owner_id")
+            .c("planner_actor_id", "STR", false, "", "", "FK actor (PLANNER)")
+            .fk("planner_actor_id", "actor.actor_id")
+            .c("planned_ship_ts", "TS", true, "", "UTC", "")
+            .c("actual_ship_ts", "TS", false, "", "UTC", ">= planned_ship_ts; NULL if not shipped")
+            .c("expected_delivery_ts", "TS", true, "", "UTC", "> planned_ship_ts")
+            .c("actual_delivery_ts", "TS", false, "", "UTC", ">= actual_ship_ts; NULL if not delivered")
+            .c(
+                "status",
+                "ENUM",
+                true,
+                "PLANNED|IN_TRANSIT|DELIVERED|CANCELLED",
+                "",
+                "derived from timestamps vs as-of date and bridge rows"
+            )
+            .c("asset_count", "INT", true, "", "count", "= number of shipment_asset rows (derived)")
+            .c(
+                "delay_hours",
+                "INT",
+                false,
+                "",
+                "hours",
+                "= (actual_delivery - expected_delivery)/3600 (derived)"
+            );
+        tSA = new Table(
+            "shipment_asset",
+            "shipment_id,asset_id",
+            "Bridge table: assets carried by a shipment (N:M)"
+        )
+            .rel("shipment N:M reusable_asset")
+            .c("shipment_id", "STR", true, "", "", "FK; part of composite PK")
+            .fk("shipment_id", "shipment.shipment_id")
+            .c("asset_id", "STR", true, "", "", "FK; part of composite PK")
+            .fk("asset_id", "reusable_asset.asset_id")
+            .c("line_status", "ENUM", true, "PLANNED|SHIPPED|RECEIVED", "", "")
+            .c("line_no", "INT", true, "", "", "position within shipment, >= 1");
+        tRma = new Table(
+            "return_authorization",
+            "rma_id",
+            "Authorisation for an asset to come back (one per asset loan)"
+        )
+            .rel(
+                "reusable_asset 1:N return_authorization; return_authorization N:1 outbound shipment; N:1 return shipment (optional)"
+            )
+            .c("rma_id", "STR", true, "", "", "PK; RMA-2026-NNNNNN; unique")
+            .c("asset_id", "STR", true, "", "", "FK")
+            .fk("asset_id", "reusable_asset.asset_id")
+            .c("outbound_shipment_id", "STR", true, "", "", "FK shipment (OUTBOUND)")
+            .fk("outbound_shipment_id", "shipment.shipment_id")
+            .c("return_shipment_id", "STR", false, "", "", "FK shipment (RETURN); NULL for overdue recalls")
+            .fk("return_shipment_id", "shipment.shipment_id")
+            .c("authorizing_owner_id", "STR", true, "", "", "FK owner; asset legal owner")
+            .fk("authorizing_owner_id", "owner.owner_id")
+            .c("reason_code", "ENUM", true, "END_OF_LOAN|OVERDUE_RECALL", "", "")
+            .c("authorized_ts", "TS", true, "", "UTC", "after delivery")
+            .c("expected_return_date", "DATE", true, "", "", "delivery date + max_loan_days")
+            .c("expiry_date", "DATE", true, "", "", "dispatch date + loss_threshold_days")
+            .c("status", "ENUM", true, "AUTHORIZED|IN_TRANSIT|RECEIVED|EXPIRED", "", "")
+            .c("closed_ts", "TS", false, "", "UTC", "set when RECEIVED or EXPIRED");
+        tEvt = new Table(
+            "custody_event",
+            "custody_event_id",
+            "Append-only custody/state-change event (history is never overwritten)"
+        )
+            .rel(
+                "reusable_asset 1:N custody_event; shipment 0..1:N custody_event; return_authorization 0..1:N custody_event; actor 0..1:N custody_event"
+            )
+            .c("custody_event_id", "STR", true, "", "", "PK; CUST-<asset-id>-NNNNNN; unique")
+            .c("asset_id", "STR", true, "", "", "FK")
+            .fk("asset_id", "reusable_asset.asset_id")
+            .c("seq_no", "INT", true, "", "", "1..n per asset, gap-free; matches ID suffix")
+            .c("event_type", "ENUM", true, E_EVT, "", "see lifecycle_rules.json")
+            .c("event_ts", "TS", true, "", "UTC", "non-decreasing along seq_no")
+            .c("from_location_id", "STR", false, "", "", "FK; NULL for COMMISSION")
+            .fk("from_location_id", "location.location_id")
+            .c(
+                "to_location_id",
+                "STR",
+                false,
+                "",
+                "",
+                "FK; set on arrival events only (asset location after the event), NULL while in transit/terminal"
+            )
+            .fk("to_location_id", "location.location_id")
+            .c("shipment_id", "STR", false, "", "", "FK")
+            .fk("shipment_id", "shipment.shipment_id")
+            .c("rma_id", "STR", false, "", "", "FK")
+            .fk("rma_id", "return_authorization.rma_id")
+            .c("from_owner_id", "STR", false, "", "", "FK custodian before")
+            .fk("from_owner_id", "owner.owner_id")
+            .c("to_owner_id", "STR", false, "", "", "FK custodian after")
+            .fk("to_owner_id", "owner.owner_id")
+            .c(
+                "actor_id",
+                "STR",
+                false,
+                "",
+                "",
+                "FK; business rule: must be present (missing => MISSING_ACTOR anomaly)"
+            )
+            .fk("actor_id", "actor.actor_id")
+            .c(
+                "actor_role",
+                "ENUM",
+                false,
+                "SUPPLIER|PLANNER|CARRIER|WAREHOUSE_OPERATOR|LOGISTICS_ANALYST|OPERATIONS_MANAGER",
+                "",
+                "role of actor"
+            )
+            .c("condition_reported", "ENUM", true, "GOOD|DAMAGED|NA", "", "")
+            .c("dispute_flag", "BOOL", true, "", "", "true iff dispute_reason present")
+            .c(
+                "dispute_reason",
+                "ENUM",
+                false,
+                "LATE_DELIVERY|CONDITION_MISMATCH",
+                "",
+                "late > 72h, or transit-damage score above cut"
+            )
+            .c("dispute_status", "ENUM", true, "NONE|OPEN|RESOLVED_ACCEPTED|RESOLVED_REJECTED", "", "")
+            .c("dispute_resolved_ts", "TS", false, "", "UTC", "only when RESOLVED_*")
+            .c("recorded_ts", "TS", true, "", "UTC", "ingestion time, >= event_ts for baseline rows")
+            .c("source_system", "ENUM", true, "WMS_SCAN|TMS_FEED|MANUAL_ENTRY", "", "");
+        tIns = new Table("inspection", "inspection_id", "Inspection of a returned or repaired asset")
+            .rel("custody_event 1:0..1 inspection; reusable_asset 1:N inspection")
+            .c("inspection_id", "STR", true, "", "", "PK; INS-2026-NNNNNN; unique")
+            .c("asset_id", "STR", true, "", "", "FK")
+            .fk("asset_id", "reusable_asset.asset_id")
+            .c("custody_event_id", "STR", true, "", "", "FK; RETURN_RECEIPT or REPAIR_RECEIPT event")
+            .fk("custody_event_id", "custody_event.custody_event_id")
+            .c("rma_id", "STR", false, "", "", "FK")
+            .fk("rma_id", "return_authorization.rma_id")
+            .c("inspection_stage", "ENUM", true, "RETURN_INTAKE|POST_REPAIR", "", "")
+            .c("inspection_ts", "TS", true, "", "UTC", "> triggering event ts")
+            .c("inspector_actor_id", "STR", true, "", "", "FK")
+            .fk("inspector_actor_id", "actor.actor_id")
+            .c("location_id", "STR", true, "", "", "FK")
+            .fk("location_id", "location.location_id")
+            .c("result", "ENUM", true, "PASS|FAIL_REPAIRABLE|FAIL_UNREPAIRABLE", "", "")
+            .c("severity", "ENUM", true, "NONE|MINOR|MAJOR|IRREPARABLE", "", "from damage_score bands")
+            .c(
+                "damage_score",
+                "DEC4",
+                true,
+                "",
+                "0-1.5",
+                "fragility*(0.6+0.4*loan_ratio)+0.6*carrier_damage+noise"
+            );
+        tRep = new Table("repair", "repair_id", "Repair job on a damaged asset")
+            .rel("inspection 1:0..1 repair; reusable_asset 1:N repair")
+            .c("repair_id", "STR", true, "", "", "PK; REP-2026-NNNNNN; unique")
+            .c("asset_id", "STR", true, "", "", "FK")
+            .fk("asset_id", "reusable_asset.asset_id")
+            .c(
+                "inspection_id",
+                "STR",
+                false,
+                "",
+                "",
+                "FK; triggering inspection (rule: required, missing => REPAIR_WITHOUT_INSPECTION)"
+            )
+            .fk("inspection_id", "inspection.inspection_id")
+            .c("send_event_id", "STR", true, "", "", "FK REPAIR_SEND event")
+            .fk("send_event_id", "custody_event.custody_event_id")
+            .c("receipt_event_id", "STR", false, "", "", "FK REPAIR_RECEIPT event; NULL while open")
+            .fk("receipt_event_id", "custody_event.custody_event_id")
+            .c("repair_location_id", "STR", true, "", "", "FK")
+            .fk("repair_location_id", "location.location_id")
+            .c("vendor_owner_id", "STR", true, "", "", "FK")
+            .fk("vendor_owner_id", "owner.owner_id")
+            .c(
+                "repair_type",
+                "ENUM",
+                true,
+                "CLEAN_AND_SANITIZE|COMPONENT_REPLACEMENT|STRUCTURAL_REPAIR",
+                "",
+                ""
+            )
+            .c("severity", "ENUM", true, "MINOR|MAJOR", "", "copied from inspection")
+            .c("opened_ts", "TS", true, "", "UTC", "")
+            .c("closed_ts", "TS", false, "", "UTC", ">= opened_ts")
+            .c("cost_amount", "DEC2", false, "", "USD", "set when closed")
+            .c("status", "ENUM", true, "OPEN|CLOSED", "", "")
+            .c("outcome", "ENUM", true, "PENDING|RESTORED|SCRAPPED", "", "from post-repair inspection")
+            .c("post_repair_inspection_id", "STR", false, "", "", "FK")
+            .fk("post_repair_inspection_id", "inspection.inspection_id");
+        tLed = new Table("deposit_ledger", "ledger_id", "Append-only deposit charges, refunds and deductions")
+            .rel(
+                "deposit account = (asset_id, dispatch_shipment_id); account 1:N ledger rows; balance derived"
+            )
+            .c("ledger_id", "STR", true, "", "", "PK; LED-2026-NNNNNN; unique")
+            .c("asset_id", "STR", true, "", "", "FK")
+            .fk("asset_id", "reusable_asset.asset_id")
+            .c("dispatch_shipment_id", "STR", true, "", "", "FK OUTBOUND shipment (account key)")
+            .fk("dispatch_shipment_id", "shipment.shipment_id")
+            .c("rma_id", "STR", false, "", "", "FK")
+            .fk("rma_id", "return_authorization.rma_id")
+            .c("depositor_owner_id", "STR", true, "", "", "FK customer owner")
+            .fk("depositor_owner_id", "owner.owner_id")
+            .c("source_event_id", "STR", false, "", "", "FK custody event that caused the entry")
+            .fk("source_event_id", "custody_event.custody_event_id")
+            .c("inspection_id", "STR", false, "", "", "FK")
+            .fk("inspection_id", "inspection.inspection_id")
+            .c("entry_ts", "TS", true, "", "UTC", "")
+            .c("entry_type", "ENUM", true, "CHARGE|REFUND|DEDUCTION", "", "")
+            .c(
+                "reason_code",
+                "ENUM",
+                true,
+                "DEPOSIT_ON_DISPATCH|RETURN_REFUND|LATE_FEE|DAMAGE_DEDUCTION|DAMAGE_FORFEIT|LOSS_FORFEIT",
+                "",
+                ""
+            )
+            .c("amount", "DEC2", true, "", "USD", "> 0; sign is implied by entry_type")
+            .c("currency", "ENUM", true, "USD", "", "");
+        tGT = new Table("ground_truth", "gt_id", "Labelled injected anomalies (kept out of input data)")
+            .c("gt_id", "STR", true, "", "", "GT-NNNNNN")
+            .c("entity_type", "STR", true, "", "", "table affected")
+            .c("entity_id", "STR", true, "", "", "primary key of the anomalous row")
+            .c("asset_id", "STR", true, "", "", "")
+            .c(
+                "issue_type",
+                "ENUM",
+                true,
+                "SIMULTANEOUS_LOCATIONS|RETURN_BEFORE_DISPATCH|DOUBLE_REFUND|REPAIR_WITHOUT_INSPECTION|MISSING_ACTOR",
+                "",
+                ""
+            )
+            .c("related_entity_id", "STR", false, "", "", "e.g. the original event / ledger row")
+            .c("expected_decision", "STR", true, "", "", "expected pipeline decision")
+            .c("description", "STR", true, "", "", "");
+    }
 }
