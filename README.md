@@ -23,6 +23,7 @@ Starter set: `./run.sh --assets 2000 --shipments 1000 --events 10000 --out start
 | `World` | Master data and the day-by-day simulation (dispatch, return, inspection, repair, deposits) |
 | `AnomalyInjector` | Injects the five labelled edge cases and writes the ground truth |
 | `Validator` | Integrity checks, derived values, reconciliation, anomaly detection |
+| `Report` | Operations report: overdue and lost assets, deposit exposure, loss and damage rates, carrier and site performance, exception queue |
 | `Exporter`, `Output` | Writes data, docs, manifest and checksums |
 | `IntList`, `LongList` | Primitive growable arrays |
 
@@ -32,6 +33,7 @@ Complexity: O(A+S+E). Pools are swap-remove arrays, asset release uses day bucke
 
 - `data/` core entities (CSV): asset_type, owner, location, actor (supporting), reusable_asset, shipment, shipment_asset (bridge), return_authorization, custody_event, inspection, repair, deposit_ledger
 - `derived/` values computed from source records only: asset_status_derived (state, location, days outstanding, loss status, deposit held), deposit_account_derived
+- `reports/` operations_report.md, overdue_assets.csv (worst first, with recommended action), exceptions_queue.csv. Computed from the data, never from the ground truth.
 - `ground_truth/` ground_truth.csv/json (injected anomalies) and asset_labels.csv (expected outcomes). Never an input feature; no data table references it.
 - `sql/` schema.sql (PK, FK, CHECK) and seed.sql (insert order respects FKs)
 - `docs/` data_dictionary.md, lifecycle_rules.json, validation_summary.md/json, source_manifest.json, generator_command.txt
@@ -70,5 +72,5 @@ Fully synthetic. No external dataset, no personal data. See `docs/source_manifes
 
 - `src/main/java/assetgen/` is the generator source.
 - `build.sh`, `run.sh` build and run it.
-- `sample_output/` is the starter dataset (2,000 assets, 1,000 shipments, 10,000 events).
+- `sample_output/` is the starter dataset and its report (2,000 assets, 1,000 shipments, 10,000 events).
 - `full_run_docs/` holds the validation summary, data dictionary, lifecycle rules and checksums for the full 20,000 / 10,000 / 100,000 run.

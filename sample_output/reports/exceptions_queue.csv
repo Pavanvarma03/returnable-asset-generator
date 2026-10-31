@@ -1,0 +1,36 @@
+issue_type,entity_type,entity_id,asset_id,recommended_action
+SIMULTANEOUS_LOCATIONS,custody_event,CUST-ASSET-0000227-000006,ASSET-000022,Quarantine the asset location and confirm physical position
+SIMULTANEOUS_LOCATIONS,custody_event,CUST-ASSET-0000940-000012,ASSET-000094,Quarantine the asset location and confirm physical position
+SIMULTANEOUS_LOCATIONS,custody_event,CUST-ASSET-0001666-000002,ASSET-000166,Quarantine the asset location and confirm physical position
+SIMULTANEOUS_LOCATIONS,custody_event,CUST-ASSET-0001804-000006,ASSET-000180,Quarantine the asset location and confirm physical position
+RETURN_BEFORE_DISPATCH,custody_event,CUST-ASSET-0000747-000005,ASSET-000074,Reject the receipt event and review scan timestamps
+RETURN_BEFORE_DISPATCH,custody_event,CUST-ASSET-0001590-000009,ASSET-000159,Reject the receipt event and review scan timestamps
+RETURN_BEFORE_DISPATCH,custody_event,CUST-ASSET-0001686-000009,ASSET-000168,Reject the receipt event and review scan timestamps
+RETURN_BEFORE_DISPATCH,custody_event,CUST-ASSET-0001875-000005,ASSET-000187,Reject the receipt event and review scan timestamps
+RETURN_BEFORE_DISPATCH,custody_event,CUST-ASSET-0001914-000005,ASSET-000191,Reject the receipt event and review scan timestamps
+DOUBLE_REFUND,deposit_ledger,LED-2026-003932,ASSET-0001357,Block the second payout and reclaim the amount
+DOUBLE_REFUND,deposit_ledger,LED-2026-003933,ASSET-0001766,Block the second payout and reclaim the amount
+DOUBLE_REFUND,deposit_ledger,LED-2026-003934,ASSET-0001102,Block the second payout and reclaim the amount
+DOUBLE_REFUND,deposit_ledger,LED-2026-003935,ASSET-0001200,Block the second payout and reclaim the amount
+DOUBLE_REFUND,deposit_ledger,LED-2026-003936,ASSET-0001590,Block the second payout and reclaim the amount
+REPAIR_WITHOUT_INSPECTION,repair,REP-2026-000002,ASSET-0001837,Reopen the repair and require an inspection
+MISSING_ACTOR,custody_event,CUST-ASSET-0000089-000002,ASSET-000008,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0000161-000009,ASSET-000016,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0000263-000007,ASSET-000026,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0000350-000008,ASSET-000035,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0000434-000001,ASSET-000043,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0000560-000006,ASSET-000056,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0000734-000004,ASSET-000073,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0001078-000017,ASSET-000107,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0001227-000002,ASSET-000122,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0001293-000002,ASSET-000129,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0001381-000001,ASSET-000138,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0001481-000002,ASSET-000148,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0001496-000002,ASSET-000149,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0001608-000001,ASSET-000160,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0001622-000003,ASSET-000162,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0001624-000001,ASSET-000162,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0001809-000001,ASSET-000180,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0001867-000011,ASSET-000186,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0001958-000003,ASSET-000195,Request actor attribution for the event
+MISSING_ACTOR,custody_event,CUST-ASSET-0001975-000017,ASSET-000197,Request actor attribution for the event

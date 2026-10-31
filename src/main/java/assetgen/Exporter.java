@@ -69,6 +69,7 @@ public final class Exporter {
     Files.writeString(out.resolve("docs/validation_summary.json"), vj.append("]\n").toString());
     Files.writeString(out.resolve("docs/generator_command.txt"), "java -cp build assetgen.Main --seed " + SEED + " --assets " + NA + " --shipments " + NS + " --events " + NE + " --as-of " + ASOF_STR + " --out <dir>\n");
     Files.writeString(out.resolve("docs/README.md"), readme(w));
+    Report.write(out.resolve("reports"), w, v);
 
     // manifest + checksums
     List<Path> files = new ArrayList<>(); try (var s = Files.walk(out)) { s.filter(Files::isRegularFile).sorted().forEach(files::add); }

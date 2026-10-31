@@ -15,6 +15,7 @@ Complexity: O(A+S+E). Pools are swap-remove arrays, asset release uses day bucke
 - `data/` core entities (CSV): asset_type, owner, location, actor (supporting), reusable_asset, shipment, shipment_asset (bridge), return_authorization, custody_event, inspection, repair, deposit_ledger
 - `derived/` values computed from source records only: asset_status_derived (state, location, days outstanding, loss status, deposit held), deposit_account_derived
 - `ground_truth/` ground_truth.csv/json (injected anomalies) and asset_labels.csv (expected outcomes). Never an input feature; no data table references it.
+- `reports/` operations_report.md (headline numbers, overdue ageing, deposit exposure, carrier and site performance, exception queue), overdue_assets.csv (overdue and lost assets with recommended action), exceptions_queue.csv. Computed from the data, never from the ground truth.
 - `sql/` schema.sql (PK, FK, CHECK) and seed.sql (insert order respects FKs)
 - `docs/` data_dictionary.md, lifecycle_rules.json, validation_summary.md/json, source_manifest.json, generator_command.txt
 - `checksums.sha256` SHA-256 of every file
