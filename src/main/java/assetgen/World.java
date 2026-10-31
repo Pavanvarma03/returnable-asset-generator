@@ -73,7 +73,7 @@ public final class World {
     int e = relA.n; relA.add(a); relW.add(w); relNext.add(relHead[d]); relHead[d] = e;
   }
   long delayH(int carOwner) {
-    return rng.nextDouble() < ownOnTime[carOwner] ? rng.nextInt(7) - 3 : 6 + (long) (-Math.log(1 - rng.nextDouble()) * 48);
+    return rng.nextDouble() < ownOnTime[carOwner] ? rng.nextInt(7) - 3 : 6 + (long) (-StrictMath.log(1 - rng.nextDouble()) * 48);
   }
   int sampleDay(int lo) {
     while (true) { int d = lo + rng.nextInt(D - lo); boolean we = ((d + 3) % 7) >= 5; if (!we || rng.nextDouble() > 0.75) return d; }
@@ -141,7 +141,7 @@ public final class World {
     // pair + transfer master (sorted by day with counting sort)
     pDay = new int[nP]; pCust = new int[nP]; pWh = new int[nP]; pCar1 = new int[nP]; pCar2 = new int[nP];
     for (int p = 0; p < nP; p++) {
-      pDay[p] = sampleDay(3); pCust[p] = (int) (nC * Math.pow(rng.nextDouble(), 1.5)); pWh[p] = rng.nextInt(nW);
+      pDay[p] = sampleDay(3); pCust[p] = (int) (nC * StrictMath.pow(rng.nextDouble(), 1.5)); pWh[p] = rng.nextInt(nW);
       pCar1[p] = car.get(rng.nextInt(car.size())); pCar2[p] = car.get(rng.nextInt(car.size()));
     }
     pOrd = sortByDay(pDay, nP);
@@ -175,14 +175,14 @@ public final class World {
   void pair(int k, int p, int day) {
     int io = 2 * k, ir = 2 * k + 1; String outId = yid("SHP", io + 1), retId = yid("SHP", ir + 1);
     int ci = pCust[p], wi = pWh[p], c1 = pCar1[p], c2 = pCar2[p];
-    int size = (int) Math.max(1, Math.round(Math.exp(Math.log(meanBatch * scale) - 0.125 + 0.5 * rng.nextGaussian())));
+    int size = (int) Math.max(1, Math.round(StrictMath.exp(StrictMath.log(meanBatch * scale) - 0.125 + 0.5 * rng.nextGaussian())));
     int tries = 0; while (psz[wi] == 0 && tries < nW) { wi = (wi + 1) % nW; tries++; }
     int n = Math.min(size, psz[wi]);
     long outPlan = BASE + day * DAY + (8 + rng.nextInt(10)) * 3600L;
     double d1 = km(wLat[wi], wLon[wi], cLat[ci], cLon[ci]); long td = Math.max(1, (long) Math.ceil(d1 / 700.0));
     long outAct = outPlan + rng.nextInt(4) * 3600L, expDel = outPlan + td * DAY;
     long actDel = Math.max(outAct + 6 * 3600L, expDel + delayH(c1) * 3600L);
-    double dwell = Math.min(150, Math.max(1, Math.exp(Math.log(cDwell[ci]) + 0.45 * rng.nextGaussian())));
+    double dwell = Math.min(150, Math.max(1, StrictMath.exp(StrictMath.log(cDwell[ci]) + 0.45 * rng.nextGaussian())));
     long retPlan = Math.floorDiv(actDel + (long) (dwell * DAY) - BASE, DAY) * DAY + BASE + (8 + rng.nextInt(10)) * 3600L;
     int rd = rng.nextDouble() < 0.85 ? wi : rng.nextInt(nW);
     long retAct = retPlan + rng.nextInt(4) * 3600L;

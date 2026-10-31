@@ -27,8 +27,8 @@ public final class Config {
   static int ai(String assetId) { return Integer.parseInt(assetId.substring(6)) - 1; }
   static double km(double la1, double lo1, double la2, double lo2) {
     double r = Math.PI / 180, dl = (la2 - la1) * r, dg = (lo2 - lo1) * r;
-    double a = Math.sin(dl / 2) * Math.sin(dl / 2) + Math.cos(la1 * r) * Math.cos(la2 * r) * Math.sin(dg / 2) * Math.sin(dg / 2);
-    return 12742 * Math.asin(Math.sqrt(a));
+    double a = StrictMath.sin(dl / 2) * StrictMath.sin(dl / 2) + StrictMath.cos(la1 * r) * StrictMath.cos(la2 * r) * StrictMath.sin(dg / 2) * StrictMath.sin(dg / 2);
+    return 12742 * StrictMath.asin(Math.sqrt(a));
   }
 
   // ======================= catalogue =======================
