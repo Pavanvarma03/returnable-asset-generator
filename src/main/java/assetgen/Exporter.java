@@ -226,8 +226,9 @@ public final class Exporter {
 
         List<Path> files = new ArrayList<>();
         try (var s = Files.walk(out)) {
-            s.filter(Files::isRegularFile).sorted().forEach(files::add);
+            s.filter(Files::isRegularFile).forEach(files::add);
         }
+        files.sort(Comparator.comparing(f -> out.relativize(f).toString().replace('\\', '/')));
         StringBuilder man = new StringBuilder(
             "{\n  \"generator\": \"assetgen (src/main/java/assetgen)\",\n  \"seed\": " +
                 SEED +
