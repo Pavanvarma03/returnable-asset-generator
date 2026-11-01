@@ -29,6 +29,8 @@ Small set:
 
 It takes a few seconds and ends with a line like `done: 89/89 checks pass`.
 
+Full dataset zip: https://github.com/Pavanvarma03/returnable-asset-generator/releases
+
 ## Output
 
 - data: asset_type, owner, location, actor, reusable_asset, shipment, shipment_asset, return_authorization, custody_event, inspection, repair, deposit_ledger
